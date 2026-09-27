@@ -1,0 +1,77 @@
+# Configuration for Registry Event type experiments
+
+data:
+  # ── Benign (3-way split 70/15/15) ──
+  benign_train: ~/data/benign/registry_event/benign_train_split_train.txt
+  benign_valid: ~/data/benign/registry_event/benign_train_split_valid.txt
+  benign_test:  ~/data/benign/registry_event/benign_train_split_test.txt
+  benign_field: winlog.event_data.TargetObject
+
+  # ── Match events (3-way split 70/15/15 stratified, min_events=5) ──
+  events_dir:       ~/data/sigma/events_hayabusa/windows/registry_event_train
+  events_valid_dir: ~/data/sigma/events_hayabusa/windows/registry_event_valid
+  events_test_dir:  ~/data/sigma/events_hayabusa/windows/registry_event_test
+
+  # ── Evasion variants (2-way split 50/50, min_events=5) ──
+  evasions_dir:        ~/data/sigma/evasions/windows/registry_event_valid   # legacy fallback
+  evasions_valid_dir:  ~/data/sigma/evasions/windows/registry_event_valid
+  evasions_test_dir:   ~/data/sigma/evasions/windows/registry_event_test
+
+  rules_dir: ~/data/sigma/rules/windows/registry
+  # Fix v2 (2026-05-20): mở rộng search_fields cover thêm field rule check
+  search_fields:
+    - TargetObject
+    - Details
+    - Image
+    - User
+    - EventType
+  event_field_map:
+    TargetObject:
+      - registry.path                    # Elastic Agent ECS (primary)
+      - winlog.event_data.TargetObject   # Winlogbeat / legacy
+      - Details.RegKey
+    Details:
+      - registry.data.strings            # Elastic Agent ECS (list → join, primary)
+      - winlog.event_data.Details        # Winlogbeat / legacy
+      - Details.Details
+    Image:
+      - process.executable
+      - winlog.event_data.Image
+    User:
+      - user.name
+      - winlog.event_data.User
+    EventType:
+      - winlog.event_data.EventType
+  max_benign_samples: 30000        # cap Stage 1 benign — LMD Sysmon EID 12/13/14 có thể rất lớn
+  max_attribution_benign: 15000    # cap Stage 2 per-rule benign
+
+training:
+  malicious_samples: both
+  normalize_benign: true           # ← FIX bug bất đối xứng (xem process_creation.yaml): bật để
+                                    #   benign chuẩn hoá GIỐNG runtime → số eval = số deploy thật.
+  vectorization: tfidf
+  ngram_range: [1, 1]
+  search_params: true
+  scoring: f1
+  cv_folds: 5
+  num_jobs: 3
+
+validation:
+  # Registry synthetic evasions may be absent because many registry Sigma patterns
+  # still match after simple hive/case transformations. Use Hayabusa match events
+  # as the positive validation set unless explicit evasions are generated.
+  malicious_samples: matches
+
+scaling:
+  mcc_scaling: true
+  mcc_threshold: 0.1
+  num_mcc_samples: 50
+
+evaluation:
+  num_thresholds: 50
+
+output:
+  dir: models/registry_event
+  result_name: ensemble
+  train_result_path: models/registry_event/train_rslt_ensemble_portable.zip
+  attr_result_name: attr_ensemble

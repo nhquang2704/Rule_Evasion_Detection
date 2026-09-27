@@ -1,0 +1,19 @@
+# Map hostname → Velociraptor client_id.
+#
+# Khi alert đến với `host.name: WIN-01`, Forensic Agent sẽ resolve sang
+# Velociraptor client_id để query đúng máy.
+#
+# Cách tìm client_id:
+#   1. Mở Velociraptor GUI (https://localhost:8889)
+#   2. Vào tab "Clients" → click vào host
+#   3. Copy chuỗi dạng "C.1a2b3c4d5e6f7g8h"
+#
+# Khi chưa cài Velociraptor (mock mode): file này có thể để trống.
+
+# VM Windows test (lab 10.10.20.20):
+WIN-01: C.1b622eacffe8b75d            # cho mock alert
+DESKTOP-2UQB61H: C.1b622eacffe8b75d   # demo VM cũ
+DESKTOP-IQAM883: C.cd6bfbb23aee7979   # demo VM mới (192.168.10.103, endpoint/123)
+
+# WebServer Linux (DMZ 192.168.50.100, hostname "ubuntu") — nguon auditd → red-alerts-linux:
+ubuntu: C.348bd65bf6fd3224           # Velociraptor Linux client, enroll 2026-06-12

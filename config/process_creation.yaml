@@ -1,0 +1,108 @@
+# Configuration for Process Creation event type experiments
+# Paths are relative to the project root (rule_evasion_detection/)
+
+data:
+  # ── Benign (3-way split 70/15/15) ──
+  benign_train: ~/data/benign/process_creation/benign_train_split_train.txt
+  benign_valid: ~/data/benign/process_creation/benign_train_split_valid.txt
+  benign_test:  ~/data/benign/process_creation/benign_train_split_test.txt
+  benign_field: process.command_line
+
+  # ── Match events (3-way split 70/15/15 stratified theo rule, min_events=5) ──
+  events_dir:       ~/data/sigma/events_hayabusa/windows/process_creation_train
+  events_valid_dir: ~/data/sigma/events_hayabusa/windows/process_creation_valid
+  events_test_dir:  ~/data/sigma/events_hayabusa/windows/process_creation_test
+
+  # ── Evasion variants (2-way split 50/50 — KHÔNG dùng cho train, min_events=5) ──
+  evasions_dir:        ~/data/sigma/evasions/windows/process_creation_valid  # fallback cho legacy (=valid)
+  evasions_valid_dir:  ~/data/sigma/evasions/windows/process_creation_valid
+  evasions_test_dir:   ~/data/sigma/evasions/windows/process_creation_test
+
+  rules_dir: ~/data/sigma/rules/windows/process_creation
+  # Sigma native field names — Fix v2 (2026-05-20): mở rộng để cover rule check
+  # ParentImage/Image/IntegrityLevel/User. Trước đó chỉ check CommandLine → miss
+  # rule kiểu "ParentImage|endswith: '\sshd.exe'" (286 rule).
+  search_fields:
+    - CommandLine
+    - Image
+    - ParentImage
+    - ParentCommandLine
+    - IntegrityLevel
+    - User
+    - OriginalFileName
+    - CurrentDirectory
+    - Description
+    - FileVersion
+    - Company
+    - Product
+    - Hashes
+  # Mapping Sigma field name → list JSON paths để đọc event/log dict
+  # Thứ tự = priority (path đầu tiên có giá trị thì dùng)
+  event_field_map:
+    CommandLine:
+      - process.command_line
+      - winlog.event_data.CommandLine
+    Image:
+      - process.executable
+      - winlog.event_data.Image
+    ParentImage:
+      - process.parent.executable
+      - winlog.event_data.ParentImage
+    ParentCommandLine:
+      - process.parent.command_line
+      - winlog.event_data.ParentCommandLine
+    IntegrityLevel:
+      - process.integrity_level
+      - winlog.event_data.IntegrityLevel
+    User:
+      - user.name
+      - winlog.event_data.User
+    OriginalFileName:
+      - winlog.event_data.OriginalFileName
+    CurrentDirectory:
+      - process.working_directory
+      - winlog.event_data.CurrentDirectory
+    Description:
+      - process.pe.description
+      - winlog.event_data.Description
+    FileVersion:
+      - process.pe.file_version
+      - winlog.event_data.FileVersion
+    Company:
+      - process.pe.company
+      - winlog.event_data.Company
+    Product:
+      - process.pe.product
+      - winlog.event_data.Product
+    Hashes:
+      - process.hash.md5
+      - winlog.event_data.Hashes
+  max_benign_samples: 30000        # cap Stage 1 benign — tránh OOM/quá chậm với LMD lớn
+  max_attribution_benign: 15000    # cap Stage 2 per-rule benign — giảm thời gian fit nhiều lần
+
+training:
+  malicious_samples: both          # rule_filters | matches
+  normalize_benign: true           # ← FIX bug bất đối xứng: chuẩn hoá benign GIỐNG malicious +
+                                    #   runtime (detect_batch/live normalize mọi event). Trước đây
+                                    #   tắt → model ăn shortcut "raw=benign" → ~87% benign bị cờ
+                                    #   khi deploy. Bật để số eval = số runtime.
+  vectorization: tfidf               # tfidf | count | hashing | binary_count | scaled_count
+  ngram_range: [1, 1]                # unigrams
+  search_params: true                # use GridSearchCV
+  scoring: f1                        # f1 | mcc
+  cv_folds: 5
+  num_jobs: 3
+
+scaling:
+  mcc_scaling: true
+  mcc_threshold: 0.1
+  num_mcc_samples: 50
+
+evaluation:
+  num_thresholds: 50
+
+output:
+  dir: models/process_creation
+  result_name: ensemble                  # tên model chính (Ensemble)
+  train_result_path: models/process_creation/train_rslt_ensemble_portable.zip
+  attr_result_name: attr_ensemble

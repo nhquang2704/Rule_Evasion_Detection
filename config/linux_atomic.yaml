@@ -1,0 +1,57 @@
+# RED-Linux — Stage 1 PRODUCTION trên data SẠCH (fix gốc V1+V2)
+# benign = Linux-APT-2024 (real auditd) ; malicious = Atomic Red Team (nhãn MITRE, độc lập Sigma)
+# Khác linux_process_creation.yaml: malicious KHÔNG phải Sigma-match → hết nhiễm nhãn/vòng tròn.
+# Model ra models/linux_atomic/ (KHÔNG đụng model bộ Sigma cũ ở models/linux_process_creation/).
+
+data:
+  # ── Benign: giữ nguyên của Linux-APT (real auditd, đã 3-way split) ──
+  benign_train: /home/luanthanh/data/red_linux/benign/process_creation/benign_split_train.txt
+  benign_valid: /home/luanthanh/data/red_linux/benign/process_creation/benign_split_valid.txt
+  benign_test:  /home/luanthanh/data/red_linux/benign/process_creation/benign_split_test.txt
+  benign_field: process.command_line
+
+  # ── Malicious: ART event-JSON (sinh bởi atomic_to_events.py) — 3-way split ──
+  events_dir:       /home/luanthanh/data/red_linux/split_atomic/match_train
+  events_valid_dir: /home/luanthanh/data/red_linux/split_atomic/match_valid
+  events_test_dir:  /home/luanthanh/data/red_linux/split_atomic/match_test
+
+  rules_dir: /home/luanthanh/data/sigma/rules/linux   # cần cho load_rule_set; matches-only nên không dùng rule_filters
+
+  search_fields:
+    - CommandLine
+    - Image
+  event_field_map:
+    CommandLine:
+      - process.command_line
+    Image:
+      - process.executable
+      - exe
+  max_benign_samples: 12000
+
+training:
+  malicious_samples: matches      # ← ART events (KHÔNG 'both' → không kéo rule_filters Sigma vào)
+  normalize_benign: true          # ← FIX bug: chuẩn hoá benign ĐỐI XỨNG với malicious (số FP thật)
+  vectorization: tfidf
+  ngram_range: [1, 1]
+  search_params: true
+  ensemble: true
+  ensemble_members: [svm, lr, cnb]
+  scoring: f1
+  cv_folds: 5
+  num_jobs: 3
+
+validation:
+  malicious_samples: matches      # ← valid/test malicious = ART matches
+
+scaling:
+  mcc_scaling: true
+  mcc_threshold: 0.1
+  num_mcc_samples: 50
+
+evaluation:
+  num_thresholds: 50
+
+output:
+  dir: models/linux_atomic
+  result_name: ensemble_atomic
+  train_result_path: models/linux_atomic/train_rslt_ensemble_atomic_portable.zip

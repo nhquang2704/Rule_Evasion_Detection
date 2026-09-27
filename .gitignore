@@ -1,0 +1,100 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Local environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Agent daemon state
+.agent_daemon_state.json
+.detect_live_state.json
+
+# Project artifacts and generated data
+data/
+data_external/
+datasets/
+models/
+figures/
+outputs/
+
+# Claude Code
+.claude/settings.local.json
+.claude
+
+demo/README.md
+demo/QA_PREP.md
+demo/SLIDES_OUTLINE.md
+demo/RED_RULE_MAP.md
+demo/apt_demo_scenario_demo_present.md
+demo/apt_demo_scenario.md
+models.rar
+velociraptor.rar
+
+# red_linux — internal / ephemeral files (không cần trên GitHub)
+red_linux/CLAUDE.md
+red_linux/NOTE_*.md
+red_linux/RUN_NOTE.md
+red_linux/AITLDS_WEB_SLICE_NOTE.md
+red_linux/KICH_BAN_THUC_NGHIEM.md
+
+# red_linux/scripts — figure generators
+red_linux/scripts/generate_*.py
+
+# red_linux/scripts — data prep / converter / probe (không chạy model)
+# CAM-LDS: parse auditd log, label, extract features → tạo training data; chạy 1 lần offline
+red_linux/scripts/camlds_*.py
+# AIT-LDS: slice apache/web log → tạo data; không dùng trong pipeline chính
+red_linux/scripts/aitlds_*.py
+# Probe / sanity scripts: khảo sát dataset 1 lần, không cần reproduce
+red_linux/scripts/probe_*.py
+red_linux/scripts/*_probe.py
+# Converter: chuyển định dạng dataset → JSONL/zircolite; chạy 1 lần
+red_linux/scripts/linux_apt_to_zircolite.py
+red_linux/scripts/zircolite_to_matches.py
+# Các script phân tích phụ: không cần cho reproduce kết quả model
+red_linux/scripts/art_clean_eval.py
+#red_linux/scripts/benign_sanity.py
+red_linux/scripts/contamination_report.py
+red_linux/scripts/extract_combine_families.py
+
+# red_linux — result notes / working docs (chỉ giữ README.md + demo/)
+red_linux/RESULT_*.md
+red_linux/PIPELINE_FLOWCHART.md
+red_linux/REPORT_LINUX.md
+
+data_external/
+models.zip
+red_linux/tools.zip

@@ -1,0 +1,79 @@
+# Configuration for PowerShell event type experiments
+
+data:
+  # ── Benign (3-way split 70/15/15) ──
+  benign_train: ~/data/benign/powershell/benign_train_split_train.txt
+  benign_valid: ~/data/benign/powershell/benign_train_split_valid.txt
+  benign_test:  ~/data/benign/powershell/benign_train_split_test.txt
+  benign_field: winlog.event_data.ScriptBlockText
+
+  # ── Match events (3-way split 70/15/15 stratified, min_events=5) ──
+  events_dir:       ~/data/sigma/events_hayabusa/windows/powershell_train
+  events_valid_dir: ~/data/sigma/events_hayabusa/windows/powershell_valid
+  events_test_dir:  ~/data/sigma/events_hayabusa/windows/powershell_test
+
+  # ── Evasion variants (2-way split 50/50, min_events=5) ──
+  evasions_dir:        ~/data/sigma/evasions/windows/powershell_valid       # legacy fallback
+  evasions_valid_dir:  ~/data/sigma/evasions/windows/powershell_valid
+  evasions_test_dir:   ~/data/sigma/evasions/windows/powershell_test
+
+  rules_dir: ~/data/sigma/rules/windows/powershell
+  # Sigma native field names — mở rộng để cover 3 sub-category powershell rules:
+  #   powershell_script:  ScriptBlockText (162 rules)
+  #   powershell_module:  ContextInfo, Payload (33 rules)
+  #   powershell_classic: Data, HostApplication (13 rules — EID 400/600 Engine Start)
+  search_fields:
+    - ScriptBlockText
+    - ContextInfo
+    - Payload
+    - Data
+    - HostApplication
+  # Mapping Sigma field name → list JSON paths để đọc event/log dict
+  event_field_map:
+    ScriptBlockText:
+      - powershell.file.script_block_text  # Elastic Agent ECS (primary)
+      - winlog.event_data.ScriptBlockText  # Winlogbeat / legacy
+      - Details.ScriptBlockText
+      - Details.ScriptBlock
+      - Details.Cmdline
+      - ExtraFieldInfo.ScriptBlockText
+    ContextInfo:
+      - winlog.event_data.ContextInfo
+      - Details.ContextInfo
+    Payload:
+      - winlog.event_data.Payload
+      - Details.Payload
+    Data:
+      - winlog.event_data.Data
+      - Details.Data
+    HostApplication:
+      - winlog.event_data.HostApplication
+      - Details.HostApplication
+  malicious_extra: ~/data/benign/powershell/malicious_extra.txt
+  max_benign_samples: 30000        # cap Stage 1 benign — MPSD .ps1 có thể rất lớn
+  max_attribution_benign: 15000    # cap Stage 2 per-rule benign
+
+training:
+  malicious_samples: both
+  normalize_benign: true           # ← FIX bug bất đối xứng (xem process_creation.yaml): bật để
+                                    #   benign chuẩn hoá GIỐNG runtime → số eval = số deploy thật.
+  vectorization: tfidf
+  ngram_range: [1, 1]
+  search_params: true
+  scoring: f1
+  cv_folds: 5
+  num_jobs: 3
+
+scaling:
+  mcc_scaling: true
+  mcc_threshold: 0.1
+  num_mcc_samples: 50
+
+evaluation:
+  num_thresholds: 50
+
+output:
+  dir: models/powershell
+  result_name: ensemble
+  train_result_path: models/powershell/train_rslt_ensemble_portable.zip
+  attr_result_name: attr_ensemble

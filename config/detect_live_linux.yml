@@ -1,0 +1,47 @@
+# Config cho detect_live_linux.py — Linux / Elastic Agent (auditd)
+# Dùng với:
+#   python red_linux/scripts/detect_live_linux.py \
+#     --config config/detect_live_linux.yml \
+#     --es-host http://192.168.10.10:9200 \
+#     --es-index "logs-auditd_manager.auditd-*" \
+#     --out-index red-alerts-linux \
+#     --threshold 0.46 --method cosine --interval 30
+
+data:
+  # ── Sigma field names (ECS cho auditd) ──
+  search_fields:
+    - CommandLine
+    - Image
+
+  # Mapping Sigma field → JSON paths trong auditd ECS document
+  # Thứ tự = priority (path đầu tiên có giá trị thì dùng)
+  event_field_map:
+    CommandLine:
+      - process.command_line   # Elastic Agent Auditd Manager (preferred)
+      - process.title          # fallback 1
+      - process.args           # fallback 2 — mảng, extract_field tự join bằng " "
+    Image:
+      - process.executable
+      - process.name
+    a0:
+      - process.name           # tên process (không path) — khớp khi child process chạy trực tiếp
+      - process.args           # fallback: tìm trong toàn bộ args array
+
+  # Danh sách thư mục Sigma rules Linux — dùng để build SigmaRuleIndex (metadata)
+  sigma_rules_dirs:
+    - ~/data/sigma/rules/linux/process_creation
+    - ~/data/sigma/rules/linux/auditd
+
+  # Chỉ nhận event có auditd.summary.how chứa "execve"
+  # (để không chấm điểm file_event / network_connection)
+  dataset_filter: auditd_manager.auditd
+
+output:
+  # Stage 1 — binary malicious/benign
+  # _portable: SVM re-fit pure-sklearn (repair_svm_portable.py) để chạy mọi CPU.
+  # Bản gốc train_rslt_ensemble_atomic.zip dính oneDAL std::bad_alloc trên CPU khác.
+  train_result_path: models/linux_atomic/train_rslt_ensemble_atomic_portable.zip
+
+  # Stage 2 — cosine attribution về Sigma rule
+  dir: models/linux_process_creation
+  attr_result_name: attr_ensemble_portable

@@ -1,0 +1,35 @@
+{
+  "Client": {
+    "server_urls": [
+      "https://192.168.10.10:8000/"
+    ],
+    "pinned_server_name": "VelociraptorServer"
+  },
+  "GUI": {
+    "bind_address": "0.0.0.0",
+    "allowed_cidr": [
+      "127.0.0.1/32",
+      "192.168.10.0/24"
+    ],
+    "public_url": "https://192.168.10.10:8889/app/index.html"
+  },
+  "Frontend": {
+    "hostname": "192.168.10.10",
+    "bind_address": "0.0.0.0",
+    "bind_port": 8000
+  },
+  "Datastore": {
+    "implementation": "FileBaseDataStore",
+    "location": "/var/lib/velociraptor",
+    "filestore_directory": "/var/lib/velociraptor",
+    "compression": "zlib"
+  },
+  "Logging": {
+    "output_directory": "/var/log/velociraptor",
+    "separate_logs_per_component": true
+  },
+  "Monitoring": {
+    "bind_address": "127.0.0.1",
+    "bind_port": 8003
+  }
+}

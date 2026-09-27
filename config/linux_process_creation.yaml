@@ -1,0 +1,56 @@
+# RED-Linux — Process Creation (auditd) config
+# Data sống ngoài mount KLTN (tránh antivirus). Xem red_linux/RUN_NOTE.md.
+
+data:
+  # ── Benign: lệnh general-labeled từ Linux-APT-Dataset-2024 (dedup, 3-way) ──
+  benign_train: /home/luanthanh/data/red_linux/benign/process_creation/benign_split_train.txt
+  benign_valid: /home/luanthanh/data/red_linux/benign/process_creation/benign_split_valid.txt
+  benign_test:  /home/luanthanh/data/red_linux/benign/process_creation/benign_split_test.txt
+  benign_field: process.command_line
+
+  # ── Match events (Sigma match thật từ Zircolite) — 3-way split ──
+  events_dir:       /home/luanthanh/data/red_linux/split/match_train
+  events_valid_dir: /home/luanthanh/data/red_linux/split/match_valid
+  events_test_dir:  /home/luanthanh/data/red_linux/split/match_test
+
+  # ── Evasion variants (đã verify bằng Zircolite) — 2-way split ──
+  evasions_dir:       /home/luanthanh/data/red_linux/split/evasion_valid
+  evasions_valid_dir: /home/luanthanh/data/red_linux/split/evasion_valid
+  evasions_test_dir:  /home/luanthanh/data/red_linux/split/evasion_test
+
+  rules_dir: /home/luanthanh/data/sigma/rules/linux
+
+  search_fields:
+    - CommandLine
+    - Image
+  event_field_map:
+    CommandLine:
+      - process.command_line
+    Image:
+      - process.executable
+      - exe
+  max_benign_samples: 12000
+  max_attribution_benign: 6000
+
+training:
+  malicious_samples: both
+  vectorization: tfidf
+  ngram_range: [1, 1]
+  search_params: true
+  scoring: f1
+  cv_folds: 5
+  num_jobs: 3
+
+scaling:
+  mcc_scaling: true
+  mcc_threshold: 0.1
+  num_mcc_samples: 50
+
+evaluation:
+  num_thresholds: 50
+
+output:
+  dir: models/linux_process_creation
+  result_name: ensemble_f1
+  train_result_path: models/linux_process_creation/train_rslt_ensemble_f1.zip
+  attr_result_name: attr_ensemble
